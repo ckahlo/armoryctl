@@ -6,6 +6,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+//go:build linux
 // +build linux
 
 package armoryctl
@@ -29,7 +30,7 @@ func checkI2C(bus int) (err error) {
 	return
 }
 
-func I2CRead(bus int, addr int, reg uint8, size uint) (val []byte, err error) {
+func I2CRead(bus int, addr int, reg int16, size uint) (val []byte, err error) {
 	err = checkI2C(bus)
 
 	if err != nil {
@@ -56,7 +57,11 @@ func I2CRead(bus int, addr int, reg uint8, size uint) (val []byte, err error) {
 		log.Printf("I2C read addr:%#x reg:%#x\n", addr, reg)
 	}
 
-	err = b.Tx(uint16(addr), w, r)
+	if reg >= 0 {
+		err = b.Tx(uint16(addr), w, r)
+	} else {
+		err = b.Tx(uint16(addr), nil, r)
+	}
 
 	if err != nil {
 		return
@@ -69,7 +74,7 @@ func I2CRead(bus int, addr int, reg uint8, size uint) (val []byte, err error) {
 	return r, nil
 }
 
-func I2CWrite(bus int, addr int, reg uint8, val []byte) (err error) {
+func I2CWrite(bus int, addr int, reg int16, val []byte) (err error) {
 	err = checkI2C(bus)
 
 	if err != nil {
@@ -91,7 +96,9 @@ func I2CWrite(bus int, addr int, reg uint8, val []byte) (err error) {
 
 	var w []byte
 
-	w = append(w, byte(reg))
+	if reg >= 0 {
+		w = append(w, byte(reg))
+	}
 	w = append(w, val...)
 
 	if Logger != nil {

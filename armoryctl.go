@@ -6,6 +6,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 //
+//go:build linux
 // +build linux
 
 package main
@@ -24,9 +25,10 @@ import (
 	"github.com/usbarmory/armoryctl/anna_b112"
 	"github.com/usbarmory/armoryctl/atecc608"
 	"github.com/usbarmory/armoryctl/fusb303"
-	"github.com/usbarmory/armoryctl/internal"
+	armoryctl "github.com/usbarmory/armoryctl/internal"
 	"github.com/usbarmory/armoryctl/led"
 	"github.com/usbarmory/armoryctl/pf1510"
+	"github.com/usbarmory/armoryctl/se05x"
 	"github.com/usbarmory/armoryctl/tusb320"
 )
 
@@ -118,6 +120,9 @@ func init() {
 	flag.StringVar(&anna_b112.OpenOCDPath, "x", anna_b112.OpenOCDPath, "OpenOCD lookpath")
 	flag.StringVar(&anna_b112.UARTPath, "u", anna_b112.UARTPath, "ANNA-B112 UART path")
 	flag.IntVar(&anna_b112.UARTSpeed, "s", anna_b112.UARTSpeed, "ANNA-B112 UART speed")
+
+	flag.IntVar(&se05x.I2CBus, "g", se05x.I2CBus, "SE05x I2C bus number")
+	flag.IntVar(&se05x.I2CAddress, "h", se05x.I2CAddress, "SE05x I2C address")
 
 	flag.IntVar(&atecc608.I2CBus, "i", atecc608.I2CBus, "ATECC608 I2C bus number")
 	flag.IntVar(&atecc608.I2CAddress, "l", atecc608.I2CAddress, "ATECC608 I2C address")
@@ -267,6 +272,8 @@ func main() {
 		res, err = atecc608.Info()
 	case "atecc self_test":
 		res, err = atecc608.SelfTest()
+	case "se05x info":
+		res, err = se05x.Info()
 	case "pmic info":
 		res, err = pf1510.Info()
 	default:

@@ -6,6 +6,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+//go:build tamago && arm
 // +build tamago,arm
 
 package armoryctl
@@ -22,18 +23,26 @@ func init() {
 	imx6ul.I2C1.Init()
 }
 
-func I2CRead(bus int, addr int, reg uint8, size uint) (val []byte, err error) {
+func I2CRead(bus int, addr int, reg int16, size uint) (val []byte, err error) {
 	if bus != I2CBus {
 		return nil, fmt.Errorf("I2C bus must be set to %d", I2CBus)
 	}
 
-	return imx6ul.I2C1.Read(uint8(addr), uint32(reg), 1, int(size))
+	if reg < 0 {
+		return imx6ul.I2C1.Read(uint8(addr), 0, 0, int(size))
+	} else {
+		return imx6ul.I2C1.Read(uint8(addr), uint32(reg), 1, int(size))
+	}
 }
 
-func I2CWrite(bus int, addr int, reg uint8, val []byte) (err error) {
+func I2CWrite(bus int, addr int, reg int16, val []byte) (err error) {
 	if bus != I2CBus {
 		return fmt.Errorf("I2C bus must be set to %d", I2CBus)
 	}
 
-	return imx6ul.I2C1.Write(val, uint8(addr), uint32(reg), 1)
+	if reg < 0 {
+		return imx6ul.I2C1.Write(val, uint8(addr), 0, 0)
+	} else {
+		return imx6ul.I2C1.Write(val, uint8(addr), uint32(reg), 1)
+	}
 }
