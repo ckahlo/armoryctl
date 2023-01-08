@@ -114,7 +114,7 @@ func I2CTX(pcb uint8, in []byte) (out []byte, err error) {
 
 	out, _ = RDI2C(sz + 2) // +CRC
 
-	if 0xF0B8 != CCITTCRC16(out, CCITTCRC16(frame, 0xFFFF)) {
+	if CCITTCRC16(out, CCITTCRC16(frame, 0xFFFF)) != 0xF0B8 {
 		return nil, fmt.Errorf("CRC Error: %04X", out[sz:])
 	}
 
