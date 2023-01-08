@@ -14,6 +14,9 @@ import (
 var (
 	I2CBus     = 0
 	I2CAddress = 0x48 // mk2.SE050_ADDR
+	//
+	IOTSSD = []byte{0xD2, 0x76, 0x00, 0x00, 0x85, 0x30, 0x4A, 0x43, 0x4F, 0x90, 0x03}
+	IOTAID = []byte{0xA0, 0x00, 0x00, 0x03, 0x96, 0x54, 0x53, 0x00, 0x00, 0x00, 0x01, 0x03, 0x00, 0x00, 0x00, 0x00}
 )
 
 const (
@@ -137,6 +140,28 @@ func selectAID(aid []byte) []byte {
 	return T1TX(append([]byte{0x00, 0xA4, 0x04, 0x00, uint8(len(aid))}, aid...))
 }
 
+// NXP AN12543
+func cmd(ins, cred, fn uint8, vals ...[]byte) (data []byte) {
+	if len(vals) > 0 {
+		for i, val := range vals {
+			data = append(data, append([]byte{uint8(0x41 + i), uint8(len(val))}, val...)...)
+		}
+	}
+
+	data = T1TX(append([]byte{0x80, ins, cred, fn, uint8(len(data))}, data...))
+	sw := binary.BigEndian.Uint16(data[len(data)-2:])
+	if sw == 0x9000 {
+		data = data[:len(data)-2]
+		// TODO: shall extract data, if only one response object contained?
+	}
+
+	return
+}
+
+func cmdM(fn uint8, vals ...[]byte) (data []byte) {
+	return cmd(4, 0, fn, vals...)
+}
+
 func nonnull(val, err any) any {
 	if err != nil {
 		return err
@@ -177,13 +202,16 @@ func Info() (res string, err error) {
 	log.Printf("se05x: INFO .....: %X", buf) // https://www.nxp.com/docs/en/application-note/AN13013.pdf
 	log.Printf("se05x:             /OEF ID ..........: %04X   /Platform build ID: %v   /Type: %v", buf[9:11], string(buf[31:47]), SE05xType[binary.BigEndian.Uint16(buf[9:11])])
 
-	log.Printf("se05x: IOTSSD ...: %X", selectAID([]byte{0xD2, 0x76, 0x00, 0x00, 0x85, 0x30, 0x4A, 0x43, 0x4F, 0x90, 0x03}))
-	log.Printf("se05x: IOTAID ...: %X", selectAID([]byte{0xA0, 0x00, 0x00, 0x03, 0x96, 0x54, 0x53, 0x00, 0x00, 0x00, 0x01, 0x03, 0x00, 0x00, 0x00, 0x00}))
-	log.Printf("se05x: VERSION ..: %X", T1TX([]byte{0x80, 0x04, 0x00, 0x20, 0x00}))
-	log.Printf("se05x: VERSION-X : %X", T1TX([]byte{0x80, 0x04, 0x00, 0x21, 0x00}))
-	log.Printf("se05x: TIMESTAMP : %X", T1TX([]byte{0x80, 0x04, 0x00, 0x3D, 0x00}))
-	log.Printf("se05x: FREE MEM .: %X", T1TX([]byte{0x80, 0x04, 0x00, 0x22, 0x03, 0x41, 0x01, 0x01}))
-	log.Printf("se05x: RANDOM ...: %X", T1TX([]byte{0x80, 0x04, 0x00, 0x49, 0x04, 0x41, 0x02, 0x00, 0x40}))
+	log.Printf("se05x: IOTSSD ...: %X", selectAID(IOTSSD))
+	log.Printf("se05x: IOTAID ...: %X", selectAID(IOTAID))
+	log.Printf("se05x: VERSION ..: %X", cmdM(0x20))
+	log.Printf("se05x: VERSION-X : %X", cmdM(0x21))
+	log.Printf("se05x: TIMESTAMP : %X", cmdM(0x3D))
+	log.Printf("se05x: FREE MEM .: %X", cmdM(0x22, []byte{0x01}))
+	log.Printf("se05x: CHKUSRID .: %X", cmdM(0x27, []byte{0x7F, 0xFF, 0x02, 0x07}))
+	log.Printf("se05x: RANDOM ...: %X", cmdM(0x49, []byte{0x00, 0x40}))
+
+	log.Printf("se05x: CROBJLIST : %X", cmd(4, 0x10, 0x47))
 
 	return
 }
